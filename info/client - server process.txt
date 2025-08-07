@@ -1,0 +1,27 @@
+sequenceDiagram
+    participant Client
+    participant Server
+    participant DB
+
+    Client->>Server: GET /chats
+    Server->>DB: SELECT chats WHERE user_id = X
+    DB-->>Server: [Chat1, Chat2, ...]
+    Server-->>Client: JSON-Array der Chats
+
+    Client->>Server: GET /roles
+    Server->>DB: SELECT roles WHERE user_id IS NULL OR user_id = X
+    DB-->>Server: [Default-Rollen, Eigene Rollen]
+    Server-->>Client: JSON-Array der Rollen
+
+    Client->>Server: POST /chats (mit role_id)
+    Server->>DB: INSERT INTO chats ...
+    Server-->>Client: Neue Chat-ID
+
+    Client->>Server: POST /chats/:id/messages
+    Server->>DB: INSERT User-Message
+    Server->>AI: Erzeuge AI-Antwort (mit Role Prompt)
+    Server->>DB: INSERT AI-Message (inkl. role_snapshot)
+    Server-->>Client: AI-Antwort
+
+    Client->>Server: DELETE /roles/:id
+    Server->>DB: DELETE FROM roles WHERE id = ...

@@ -1,0 +1,8 @@
+How does openAI does it because I can't just send endlessly chats in there 
+right?
+so maybe we need a mechanism that checks the token input and then leaves
+out old stuff so it fits into the ai.
+
+if we are super advanced then we can store the whole information of the
+conversation (the whole context and info that the ai needs) into a 
+database so the ai gives really good results

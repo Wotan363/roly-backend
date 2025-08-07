@@ -1,0 +1,41 @@
+// Use DBML to define your database structure
+// Docs: https://dbml.dbdiagram.io/docs
+
+Table users {
+  id uuid [primary key]
+  email text
+  created_at timestamp
+}
+
+Table roles {
+  id uuid [primary key]
+  user_id uuid [ref: > users.id] // Wenn NULL, dann ist es eine Default Rolle, die für alle Nutzer gilt
+  name text [unique]
+  systemPrompt text
+  created_at timestamp
+}
+
+Table chats {
+  id uuid [primary key]
+  user_id uuid [ref: > users.id]
+  title text
+  created_at timestamp
+}
+
+Table messages {
+  id uuid [primary key]
+  chat_id uuid [ref: > chats.id]
+  sender_role text // "assistant" / "system"
+  content text // Message text
+  created_at timestamp
+  role_snapshot_id uuid [ref: > role_snapshots.id]
+}
+
+Table role_snapshots { // This is so we don't lose the information on what role was used even if the role gets deleted by the user
+  id uuid [primary key]
+  role_id uuid [ref: > roles.id]
+  name text
+  systemPrompt text
+  created_at timestamp
+}
+

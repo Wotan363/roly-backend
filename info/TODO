@@ -1,0 +1,5 @@
+- implement the database with all functions (Folder: ./internal/database)
+
+- adjust the ./internal/ai/aiPrompter.go to function dynamically and not as a CLI tool rn
+
+- make the README.md file great and understandable for everyone
