@@ -2,15 +2,14 @@ package webSocket
 
 import (
 	"context"
-	"fmt"
 	"log/slog"
 	"net/http"
 	"sync"
 	"time"
 
-	"github.com/google/uuid"
 	"github.com/gorilla/websocket"
 	"github.com/roly-backend/internal/config"
+	"github.com/roly-backend/internal/users"
 )
 
 // Defines the HTTP to Websocket Upgrader
@@ -27,12 +26,29 @@ type Connection struct {
 	sendChannel chan []byte
 	ctx         context.Context
 	cancel      context.CancelFunc
-	Uuid        string
+	UserID      string
 	cleanupOnce sync.Once // Ensures that cleanup is only executed once, even if multiple goroutines call it concurrently on the same connection.
 }
 
 // Handles new incoming websocket connections
-func handleWebSocket(w http.ResponseWriter, r *http.Request) {
+func HandleWebSocket(w http.ResponseWriter, r *http.Request) {
+	// Validate if client is authorized with a valid JWT
+	claims, err := users.ValidateWebSocketJWT(r)
+	if err != nil {
+		slog.LogAttrs(context.Background(), slog.LevelInfo, "Unauthorized websocket connection rejected",
+			slog.String("error", err.Error()),
+			slog.String("user_id", claims.UserID),
+			slog.String("email", claims.Email),
+		)
+		http.Error(w, "Unauthorized", http.StatusUnauthorized)
+		return
+	}
+
+	slog.LogAttrs(context.Background(), slog.LevelInfo, "Websocket connection approved",
+		slog.String("user_id", claims.UserID),
+		slog.String("email", claims.Email),
+	)
+
 	// Upgrades initialen HTTP Request to WebSocket
 	ws, err := upgrader.Upgrade(w, r, nil)
 	if err != nil {
@@ -49,11 +65,12 @@ func handleWebSocket(w http.ResponseWriter, r *http.Request) {
 		sendChannel: make(chan []byte, 10), // Initialises a buffered channel so multiple simultaniouos messages to the channel won't get lost. Can hold up to 10 messages simultaniously
 		ctx:         ctx,
 		cancel:      cancel,
-		Uuid:        uuid.NewString(),
+		UserID:      claims.UserID,
 	}
 
-	slog.LogAttrs(context.Background(), slog.LevelInfo, "New incoming websocket connection",
-		slog.String("uuid", conn.Uuid),
+	slog.LogAttrs(context.Background(), slog.LevelInfo, "Websocket connection successfully established",
+		slog.String("user_id", claims.UserID),
+		slog.String("email", claims.Email),
 	)
 
 	// Starts the Read and Write Loops
@@ -86,12 +103,12 @@ func readLoop(conn *Connection) {
 				// the tab is force-closed, or the network connection is suddenly lost.
 				if websocket.IsUnexpectedCloseError(err, websocket.CloseNormalClosure, websocket.CloseGoingAway, websocket.CloseAbnormalClosure) {
 					slog.LogAttrs(context.Background(), slog.LevelError, "Error reading incoming websocket message",
-						slog.String("uuid", conn.Uuid),
+						slog.String("user_id", conn.UserID),
 						slog.String("error", err.Error()),
 					)
 				} else {
 					slog.LogAttrs(context.Background(), slog.LevelInfo, "Websocket closed by client",
-						slog.String("uuid", conn.Uuid),
+						slog.String("user_id", conn.UserID),
 					)
 				}
 				return
@@ -100,7 +117,7 @@ func readLoop(conn *Connection) {
 			if messageType == websocket.TextMessage {
 				if config.DebugMode {
 					slog.LogAttrs(context.Background(), slog.LevelDebug, "New incoming websocket message",
-						slog.String("uuid", conn.Uuid),
+						slog.String("user_id", conn.UserID),
 						slog.String("message", string(msg)),
 					)
 				}
@@ -126,7 +143,7 @@ func writeLoop(conn *Connection) {
 			}
 			if config.DebugMode {
 				slog.LogAttrs(context.Background(), slog.LevelDebug, "New outgoing websocket message",
-					slog.String("uuid", conn.Uuid),
+					slog.String("user_id", conn.UserID),
 					slog.String("message", string(msg)),
 				)
 			}
@@ -135,7 +152,7 @@ func writeLoop(conn *Connection) {
 			err := conn.ws.WriteMessage(websocket.TextMessage, msg)
 			if err != nil {
 				slog.LogAttrs(context.Background(), slog.LevelError, "Error while sending a websocket message to a client",
-					slog.String("uuid", conn.Uuid),
+					slog.String("user_id", conn.UserID),
 					slog.String("error", err.Error()),
 					slog.String("message", string(msg)),
 				)
@@ -152,15 +169,7 @@ func cleanup(conn *Connection) {
 		conn.ws.Close()
 		close(conn.sendChannel)
 		slog.LogAttrs(context.Background(), slog.LevelInfo, "Websocket connection was closed",
-			slog.String("uuid", conn.Uuid),
+			slog.String("user_id", conn.UserID),
 		)
 	})
-}
-
-func StartServer() {
-	http.HandleFunc("/ws", handleWebSocket)
-
-	slog.Info(fmt.Sprintf("Server started in %v mode, listening to port %v", config.Env.AppEnv, config.Env.Port))
-	err := http.ListenAndServe(fmt.Sprintf(":%v", config.Env.Port), nil)
-	slog.Error("Server closed", slog.String("error", err.Error()))
 }

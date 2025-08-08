@@ -4,6 +4,7 @@
 Table users {
   id uuid [primary key]
   email text
+  password text
   created_at timestamp
 }
 

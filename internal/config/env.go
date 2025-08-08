@@ -10,10 +10,10 @@ import (
 
 type ENV struct {
 	AppEnv       string
-	Port         string
 	RolyAPIURL   string
 	DBURL        string
 	OpenAIAPIKey string
+	JWTSecret    string
 }
 
 var Env ENV
@@ -54,9 +54,9 @@ func LoadEnv() {
 
 	Env = ENV{
 		AppEnv:       os.Getenv("APP_ENV"),
-		Port:         os.Getenv("PORT"),
 		RolyAPIURL:   os.Getenv("API_URL"),
 		DBURL:        os.Getenv("DATABASE_URL"),
 		OpenAIAPIKey: os.Getenv("OPENAI_API_KEY"),
+		JWTSecret:    os.Getenv("JWT_SECRET"),
 	}
 }

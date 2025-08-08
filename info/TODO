@@ -1,5 +1,9 @@
 - implement the database with all functions (Folder: ./internal/database)
 
+- Is the signing method safe for the JWT Token?
+
 - adjust the ./internal/ai/aiPrompter.go to function dynamically and not as a CLI tool rn
 
 - make the README.md file great and understandable for everyone
+
+- Create tests and adjust existing ones. Eg. websocket test. Also make it modular with ports

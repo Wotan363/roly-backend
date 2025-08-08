@@ -1,0 +1,6 @@
+users stellt alle login und registrierungsfunktionen und tokens bereit
+Dann kann man eine verbindung mit dem websocket aufbauen.
+Das websocket checkt ob der nutzer die verbindung herstellen darf.
+wenn per websocket eingeloggt, dann kann der nutzer auf alle weiteren funktionen wie messages, roles und chats zugreifen. 
+Heißt, ich muss einfach den nutzer einloggen und dann kann ich direkt in connection die user id speichern. Dadurch kann ich dann wiederum auf alle korrekten datenbank sachen zugreifen
+Und das funnktioniert, weil das websocket keine verbindung mit jemand eingeht, der nicht eingeloggt ist und erst wenn das funktioniert bekommt der nutzer auch eine id der datenbank und so weiter.
